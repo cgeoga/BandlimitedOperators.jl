@@ -29,9 +29,11 @@ mul!(buf, fastM, x)
 ```
 
 **Notes**:
+
 -- This package uses [`FINUFFT.jl`](https://github.com/ludvigak/FINUFFT.jl),
 which offers transformations in 1D, 2D, and 3D. For 2D and 3D transformations,
 please pass points in as `SVector`s.
+
 -- In 1D there is an interface for kernels whose compactly supported Fourier
 transform has points of non-smoothness. Since the accuracy of this package
 depends on the accuracy of a quadrature rule for resolving Fourier integrals of

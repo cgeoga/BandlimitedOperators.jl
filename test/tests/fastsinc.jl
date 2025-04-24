@@ -10,23 +10,27 @@ pts2D = rand(StableRNG(123), SVector{2,Float64}, 1000)
 v   = randn(StableRNG(124), length(pts))
 
 # 1D:
-for (oj, bk) in Iterators.product(offsets, bandwidths)
-  ptsj = pts .+ oj
-  fs   = FastBandlimited(ptsj, ptsj, x->inv(2*bk), bk)
-  M    = [sinc(2*bk*(xj-xk)) for xj in ptsj, xk in ptsj]
-  tmp  = similar(v)
-  mul!(tmp, fs, v)
-  @test maximum(abs, tmp-M*v) < 1e-11
+@testset "1D" begin
+  for (oj, bk) in Iterators.product(offsets, bandwidths)
+    ptsj = pts .+ oj
+    fs   = FastBandlimited(ptsj, ptsj, x->inv(2*bk), bk)
+    M    = [sinc(2*bk*(xj-xk)) for xj in ptsj, xk in ptsj]
+    tmp  = similar(v)
+    mul!(tmp, fs, v)
+    @test maximum(abs, tmp-M*v) < 1e-11
+  end
 end
 
 #2D:
 sinc2d(x) = sinc(x[1])*sinc(x[2])
-for (oj, bk) in Iterators.product(offsets, bandwidths)
-  ptsj = [x + SA[oj, oj] for x in pts2D]
-  fs   = FastBandlimited(pts2D, pts2D, x->inv((2*bk)^2), bk)
-  M    = [sinc2d(2*bk*(xj-xk)) for xj in ptsj, xk in ptsj]
-  tmp  = similar(v)
-  mul!(tmp, fs, v)
-  @test maximum(abs, tmp-M*v) < 1e-11
+@testset "2D" begin
+  for (oj, bk) in Iterators.product(offsets, bandwidths)
+    ptsj = [x + SA[oj, oj] for x in pts2D]
+    fs   = FastBandlimited(pts2D, pts2D, x->inv((2*bk)^2), bk)
+    M    = [sinc2d(2*bk*(xj-xk)) for xj in ptsj, xk in ptsj]
+    tmp  = similar(v)
+    mul!(tmp, fs, v)
+    @test maximum(abs, tmp-M*v) < 1e-11
+  end
 end
 

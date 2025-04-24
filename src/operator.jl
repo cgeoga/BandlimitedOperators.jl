@@ -9,6 +9,7 @@ struct FastBandlimited{T}
   buf::Vector{ComplexF64}
 end
 
+# straight interval 1D:
 function glquadrule(n::Int64, a::Float64, b::Float64)
   (no, wt) = gausslegendre(n)
   (bmad2, bpad2) = ((b-a)/2, (b+a)/2)
@@ -19,7 +20,7 @@ function glquadrule(n::Int64, a::Float64, b::Float64)
   (no, wt)
 end
 
-# panel version of above
+# panel 1D:
 function glquadrule(n::Int64, ab_breakpoints::AbstractVector{Float64})
   bma    = ab_breakpoints[end] - ab_breakpoints[1]
   ivs    = collect(zip(ab_breakpoints, ab_breakpoints[2:end]))
@@ -43,21 +44,33 @@ function bandlimited_quadrule(s1::Vector{Float64}, s2::Vector{Float64},
   maxs  = max(maximum(abs, s1), maximum(abs, s2))
   quadn = Int(ceil(8*bandlimit*maxs + quadn_add))
   isnothing(roughpoints) && return glquadrule(quadn, -bandlimit, bandlimit)
-  all(x->-bandlimit < x < bandlimit, roughpoints) || throw(error("Rough points are outside the bandlimit region."))
   regions = vcat(-bandlimit, sort(unique(roughpoints)), bandlimit)
-  glquadrule(quadn, -bandlimit, bandlimit)
+  glquadrule(quadn, regions)
 end
 
-# TODO (cg 2025/04/18 16:00): extend the panel logic to the 2D case
 function bandlimited_quadrule(s1::Vector{SVector{D,Float64}}, 
                               s2::Vector{SVector{D,Float64}}, 
                               bandlimit, quadn_add=0, roughpoints=nothing) where{D}
   bandlimits = (bandlimit isa Float64) ? ntuple(_->bandlimit, D) : bandlimits
-  quadnv  = ntuple(D) do j
+  quadnv = ntuple(D) do j
     maxsj = max(maximum(x->abs(x[j]), s1), maximum(x->abs(x[j]), s2))
     Int(ceil(4*bandlimits[j]*maxsj + quadn_add))
   end
-  glquadrule(quadnv, .-bandlimits, bandlimits)
+  no_wt_v = ntuple(D) do j
+    breakpointsj = if isnothing(roughpoints)
+      [-bandlimits[j], bandlimits[j]]
+    else
+      splitsj = unique(getindex.(roughpoints, j))
+      bp      = sort(vcat(-bandlimits[j], splitsj, bandlimits[j]))
+      filter(x-> abs(x) <= bandlimits[j], bp)
+    end
+    glquadrule(quadnv[j], breakpointsj)
+  end
+  nodes = getindex.(no_wt_v, 1)
+  wts   = getindex.(no_wt_v, 2)
+  nodes = vec(SVector{D,Float64}.(Iterators.product(nodes...)))
+  wts   = vec(prod.(Iterators.product(wts...)))
+  (nodes, wts)
 end
 
 function FastBandlimited(s1, s2, fn, bandlimit; quadn_add=50, roughpoints=nothing)

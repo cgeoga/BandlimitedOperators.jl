@@ -11,3 +11,4 @@ examples/debug*.jl
 Manifest.toml
 examples/Manifest.toml
 test/Mainfest.toml
+devel

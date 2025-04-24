@@ -14,3 +14,9 @@ end
   end
 end
 
+@testset "Fast sinc squared" begin
+  let scope_dummy = 0
+    include("./tests/fastsincsquared.jl")
+  end
+end
+

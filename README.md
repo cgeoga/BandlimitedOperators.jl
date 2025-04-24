@@ -39,8 +39,7 @@ would do a fast sinc squared transform:
 pts1 = sort(rand(1000)).*3
 pts2 = sort(rand(1000)).*3
 
-M    = [sinc(18.1*(xj-xk))^2 for xj in pts2, xk in pts1]
-
+triangle(x, bw) = max(0.0, 1-abs(x)/bw)
 fastM = FastBandlimited(pts1, pts2, x->triangle(x, 18.1)/18.1, 18.1; 
                         roughpoints=(0.0,))
 
@@ -48,6 +47,7 @@ x     = randn(length(pts1))
 buf   = zeros(length(x))
 mul!(buf, fastM, x)
 
+M = [sinc(18.1*(xj-xk))^2 for xj in pts2, xk in pts1]
 @show maximum(abs, M*x - buf) # ~1e-13
 ```
 

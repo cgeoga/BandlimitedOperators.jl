@@ -6,7 +6,7 @@ for D in 1:3
 
   F1    = BandlimitedOperators.nudftmatrix(fqs, pts, -1)
 
-  F2    = BandlimitedOperators.NUFFT3(pts, fqs.*(2*pi), false)
+  F2    = BandlimitedOperators.NUFFT3(fqs.*(2*pi), pts, false)
 
   F2m = reduce(hcat, map(eachindex(pts)) do j
                  z    = zeros(ComplexF64, length(fqs))

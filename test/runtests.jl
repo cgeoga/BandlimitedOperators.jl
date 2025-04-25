@@ -8,6 +8,12 @@ using BandlimitedOperators.StaticArrays
   end
 end
 
+@testset "Fast Gauss" begin
+  let scope_dummy = 0
+    include("./tests/fastgauss.jl")
+  end
+end
+
 @testset "Fast sinc" begin
   let scope_dummy = 0
     include("./tests/fastsinc.jl")

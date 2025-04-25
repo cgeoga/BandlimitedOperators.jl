@@ -12,7 +12,7 @@ x    = randn(length(pts1))
 
 # The matrix we want to approximate, which corresponds to a kernel matrix whose
 # kernel function's Fourier transform is supported on [-18.1, 18.1].
-M = [sinc(18.1*(xj-xk))^2 for xj in pts2, xk in pts1]
+M = [sinc(18.1*(xj-xk))^2 for xj in pts1, xk in pts2]
 
 # We approximate it with a FastBandlimited object. Note the Fourier transform of
 # this kernel function is precisely ω ↦ triangle(w, 18.1)/18.1, so that is the third
@@ -41,7 +41,7 @@ pts1 = rand(SVector{2,Float64}, 1000).*3
 pts2 = rand(SVector{2,Float64}, 1000).*3
 
 sincsquared2d(t) = (sinc(t[1])*sinc(t[2]))^2
-M = [sincsquared2d(3.3*(xj-xk)) for xj in pts2, xk in pts1]
+M = [sincsquared2d(3.3*(xj-xk)) for xj in pts1, xk in pts2]
 
 fastM = FastBandlimited(pts1, pts2, x->triangle(x[1], 3.3)*triangle(x[2], 3.3)/(3.3^2), 3.3;
                         quadn_add=30, roughpoints=(SA[0.0, 0.0],))

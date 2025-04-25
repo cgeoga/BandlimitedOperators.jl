@@ -5,8 +5,7 @@ struct FastBandlimited{T}
   ft1::NUFFT3
   ft2::NUFFT3
   no::Vector{T}
-  op::Vector{Float64}
-  buf::Vector{ComplexF64}
+  op::Vector{ComplexF64}
 end
 
 function glquadrule(n::Int64, a::Float64, b::Float64)
@@ -74,32 +73,51 @@ end
 function FastBandlimited(s1, s2, fn, bandlimit; quadn_add=10, 
                          roughpoints=nothing)
   (no, wt)  = bandlimited_quadrule(s1, s2, bandlimit, quadn_add, roughpoints)
-  op  = wt.*fn.(no)
-  ft1 = NUFFT3(s1.*(2*pi), no, false)
-  ft2 = NUFFT3(no, s2.*(2*pi), true)
-  buf = Vector{ComplexF64}(undef, length(no))
-  FastBandlimited(s1==s2, (length(s1), length(s2)), ft1, ft2, no, op, buf)
+  op  = complex(wt.*fn.(no))
+  ft1 = NUFFT3(no, s2.*(2*pi), false, 1e-15)
+  ft2 = NUFFT3(no, s1.*(2*pi), false, 1e-15)
+  FastBandlimited(s1==s2, (length(s1), length(s2)), ft1, ft2, no, op)
 end
 
 LinearAlgebra.ishermitian(fs::FastBandlimited{T}) where{T} = fs.sym
+LinearAlgebra.adjoint(fs::FastBandlimited{T}) where{T} = Adjoint{Float64, FastBandlimited{T}}(fs)
 Base.eltype(fs::FastBandlimited{T}) where{T} = Float64
 Base.size(fs::FastBandlimited)         = fs.sz
 Base.size(fs::FastBandlimited, j::Int) = size(fs)[j]
 
+
 function LinearAlgebra.mul!(buf, fs::FastBandlimited, v)
-  mul!(fs.buf, fs.ft1, complex(v))
-  fs.buf .*= fs.op
-  tmp = Vector{ComplexF64}(undef, length(v))
-  mul!(tmp, fs.ft2, fs.buf)
-  buf .= real(tmp)
+  cv            = complex(v)
+  fourier_buf   = fs.ft1*cv
+  fourier_buf .*= fs.op
+  tmp           = fs.ft2'*fourier_buf
+  buf          .= real(tmp)
+end
+
+function Base.:*(fs::FastBandlimited, v)
+  out = if (v isa Vector{Float64})
+    Array{Float64}(undef, size(fs, 1))
+  else
+    Array{Float64}(undef, (size(fs, 1), size(v,2)))
+  end
+  mul!(out, fs, v)
 end
 
 function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited{T}}, v) where{T}
   fs = afs.parent
-  mul!(fs.buf, adjoint(fs.ft2), complex(v))
-  fs.buf .*= fs.op
-  tmp = Vector{ComplexF64}(undef, length(v))
-  mul!(tmp, adjoint(fs.ft1), fs.buf)
-  buf .= real(tmp)
+  cv = complex(v)
+  fourier_buf   = fs.ft2*cv
+  fourier_buf .*= fs.op
+  tmp           = fs.ft1'*fourier_buf
+  buf          .= real(tmp)
+end
+
+function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v)
+  out = if (v isa Vector{Float64})
+    Array{Float64}(undef, size(afs, 1))
+  else
+    Array{Float64}(undef, (size(afs, 1), size(v,2)))
+  end
+  mul!(out, afs, v)
 end
 

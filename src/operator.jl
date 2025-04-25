@@ -86,15 +86,18 @@ Base.size(fs::FastBandlimited)         = fs.sz
 Base.size(fs::FastBandlimited, j::Int) = size(fs)[j]
 
 
-function LinearAlgebra.mul!(buf, fs::FastBandlimited, v)
-  cv            = complex(v)
-  fourier_buf   = fs.ft1*cv
-  fourier_buf .*= fs.op
-  tmp           = fs.ft2'*fourier_buf
-  buf          .= real(tmp)
+function LinearAlgebra.mul!(buf, fs::FastBandlimited, v::AbstractVecOrMat{Float64})
+  cv = complex(v)
+  fourier_buf = fs.ft1*cv
+  for j in 1:size(fourier_buf, 2)
+    buf_colj   = view(fourier_buf, :, j)
+    buf_colj .*= fs.op
+  end
+  tmp  = fs.ft2'*fourier_buf
+  buf .= real(tmp)
 end
 
-function Base.:*(fs::FastBandlimited, v)
+function Base.:*(fs::FastBandlimited, v::AbstractVecOrMat{Float64})
   out = if (v isa Vector{Float64})
     Array{Float64}(undef, size(fs, 1))
   else
@@ -103,16 +106,20 @@ function Base.:*(fs::FastBandlimited, v)
   mul!(out, fs, v)
 end
 
-function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited{T}}, v) where{T}
+function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited{T}}, 
+                            v::AbstractVecOrMat{Float64}) where{T}
   fs = afs.parent
   cv = complex(v)
-  fourier_buf   = fs.ft2*cv
-  fourier_buf .*= fs.op
-  tmp           = fs.ft1'*fourier_buf
-  buf          .= real(tmp)
+  fourier_buf = fs.ft2*cv
+  for j in 1:size(fourier_buf, 2)
+    buf_colj   = view(fourier_buf, :, j)
+    buf_colj .*= fs.op
+  end
+  tmp = fs.ft1'*fourier_buf
+  buf.= real(tmp)
 end
 
-function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v)
+function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v::AbstractVecOrMat{Float64})
   out = if (v isa Vector{Float64})
     Array{Float64}(undef, size(afs, 1))
   else

@@ -85,12 +85,12 @@ function LinearAlgebra.mul!(buf, nf::NUFFT3, x)
   buf
 end
 
-function Base.:*(fs::NUFFT3, x::AbstractVector{S}) where{S}
+function Base.:*(fs::NUFFT3, x::Vector{S}) where{S}
   buf = Array{ComplexF64}(undef, size(fs, 1))
   mul!(buf, fs, complex(x))
 end
 
-function Base.:*(fs::NUFFT3, x::AbstractMatrix{S}) where{S}
+function Base.:*(fs::NUFFT3, x::Matrix{S}) where{S}
   buf = Array{ComplexF64}(undef, (size(fs, 1), size(x,2)))
   mul!(buf, fs, complex(x))
 end
@@ -121,18 +121,16 @@ function LinearAlgebra.mul!(buf, anf::Adjoint{ComplexF64, NUFFT3}, x)
   buf
 end
 
-function Base.:*(afs::Adjoint{ComplexF64, NUFFT3}, x::AbstractVector{S}) where{S}
-  fs  = afs.parent
-  buf = Array{ComplexF64}(undef, (size(fs, 2)))
+function Base.:*(afs::Adjoint{ComplexF64, NUFFT3}, x::Vector{S}) where{S}
+  buf = Array{ComplexF64}(undef, (size(afs, 1)))
   mul!(buf, afs, complex(x))
 end
 
 # TODO (cg 2025/04/25 10:06): Splitting this into a separate method because of
 # some weird dispatch ambiguity errors that the compiler throws. Not sure if
 # that is me doing something dumb or a compiler error.
-function Base.:*(afs::Adjoint{ComplexF64, NUFFT3}, x::AbstractMatrix{S}) where{S}
-  fs  = afs.parent
-  buf = Array{ComplexF64}(undef, (size(afs, 2), size(x,2)))
+function Base.:*(afs::Adjoint{ComplexF64, NUFFT3}, x::Matrix{S}) where{S}
+  buf = Array{ComplexF64}(undef, (size(afs, 1), size(x,2)))
   mul!(buf, afs, complex(x))
 end
 

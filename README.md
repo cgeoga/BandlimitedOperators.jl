@@ -52,3 +52,20 @@ M = [sinc(18.1*(xj-xk))^2 for xj in pts1, xk in pts2]
 
 **Please see the files in `./example` for demonstrations in 2D.**
 
+# Citation
+
+Certainly this small extension of the fast sinc transform is not enough novel
+work to merit a paper. But if this package brought you functionality that
+benefited your work, I would very much appreciate you citing it. Metrics like
+that are useful and help people like me (whose job isn't really to write
+software) justify the time. Thanks in advance!
+```
+@software{Geoga_BandlimitedOperators_jl,
+author = {Geoga, Christopher J.},
+month = apr,
+title = {{BandlimitedOperators.jl}},
+url = {https://github.com/cgeoga/BandlimitedOperators.jl},
+version = {0.1.1},
+year = {2025}
+}
+```

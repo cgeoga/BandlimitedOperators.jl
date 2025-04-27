@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Geoga"
+  given-names: "Christopher J."
+title: "BandlimitedOperators.jl"
+version: 0.1.1
+date-released: 2025-04-27
+url: "https://github.com/cgeoga/BandlimitedOperators.jl"

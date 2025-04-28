@@ -36,10 +36,22 @@ function glquadrule(nv::NTuple{N, Int64}, a::NTuple{N,Float64},
   (nodes, weights)
 end
 
+function highest_frequency(s1::Vector{Float64}, s2::Vector{Float64})
+  (s1min, s1max) = extrema(s1)
+  (s2min, s2max) = extrema(s2)
+  max(abs(s2max - s1min), abs(s1max - s2min))
+end
+
+function highest_frequency(s1, s2, j::Int)
+  (s1min, s1max) = extrema(x->x[j], s1)
+  (s2min, s2max) = extrema(x->x[j], s2)
+  max(abs(s2max - s1min), abs(s1max - s2min))
+end
+
 function bandlimited_quadrule(s1::Vector{Float64}, s2::Vector{Float64}, 
                               bandlimit::Float64, quadn_add, roughpoints)
-  maxs  = max(maximum(abs, s1), maximum(abs, s2))
-  quadn = Int(ceil(8*bandlimit*maxs + quadn_add))
+  fmax  = highest_frequency(s1, s2)
+  quadn = Int(ceil(4*bandlimit*fmax + quadn_add))
   isnothing(roughpoints) && return glquadrule(quadn, -bandlimit, bandlimit)
   regions = vcat(-bandlimit, sort(unique(roughpoints)), bandlimit)
   glquadrule(quadn, regions)
@@ -50,8 +62,8 @@ function bandlimited_quadrule(s1::Vector{SVector{D,Float64}},
                               bandlimit, quadn_add, roughpoints) where{D}
   bandlimits = (bandlimit isa Float64) ? ntuple(_->bandlimit, D) : bandlimits
   quadnv = ntuple(D) do j
-    maxsj = max(maximum(x->abs(x[j]), s1), maximum(x->abs(x[j]), s2))
-    Int(ceil(8*bandlimits[j]*maxsj + quadn_add))
+    fmaxj = highest_frequency(s1, s2, j)
+    Int(ceil(4*bandlimits[j]*fmaxj + quadn_add))
   end
   no_wt_v = ntuple(D) do j
     breakpointsj = if isnothing(roughpoints)
@@ -70,12 +82,36 @@ function bandlimited_quadrule(s1::Vector{SVector{D,Float64}},
   (nodes, wts)
 end
 
-function FastBandlimited(s1, s2, fn, bandlimit; quadn_add=10, 
+# TODO (cg 2025/04/28 09:37): could choose more thoughtful default values here.
+default_extra_quad(s1::Vector{Float64})            = 100 # 100  extra nodes
+default_extra_quad(s1::Vector{SVector{2,Float64}}) = 20  # 400  extra nodes
+default_extra_quad(s1::Vector{SVector{3,Float64}}) = 10  # 1000 extra nodes (least tested)
+
+function internal_shift(s1::Vector{Float64}, s2::Vector{Float64})
+  shifter = (sum(s1)/length(s1) + sum(s2)/length(s2))/2 
+  (s1.-shifter, s2.-shifter)
+end
+
+function internal_shift(s1::Vector{SVector{D,Float64}}, 
+                        s2::Vector{SVector{D,Float64}}) where{D}
+  _shifter = ntuple(D) do j
+    m1j = sum(x->x[j], s1)/length(s1)
+    m2j = sum(x->x[j], s2)/length(s2)
+    (m1j + m2j)/2
+  end
+  shifter = SVector{D,Float64}(_shifter)
+  ([SVector{D,Float64}(x.data.-shifter.data) for x in s1], 
+   [SVector{D,Float64}(x.data.-shifter.data) for x in s2])
+end
+
+function FastBandlimited(s1, s2, fn, bandlimit; 
+                         quadn_add=default_extra_quad(s1), 
                          roughpoints=nothing)
-  (no, wt)  = bandlimited_quadrule(s1, s2, bandlimit, quadn_add, roughpoints)
+  (_s1, _s2) = internal_shift(s1, s2)
+  (no, wt)   = bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
   op  = complex(wt.*fn.(no))
-  ft1 = NUFFT3(no, s2.*(2*pi), false, 1e-15)
-  ft2 = NUFFT3(no, s1.*(2*pi), false, 1e-15)
+  ft1 = NUFFT3(no, _s2.*(2*pi), false, 1e-15)
+  ft2 = NUFFT3(no, _s1.*(2*pi), false, 1e-15)
   FastBandlimited(s1==s2, (length(s1), length(s2)), ft1, ft2, no, op)
 end
 

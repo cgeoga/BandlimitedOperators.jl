@@ -1,7 +1,7 @@
 
 module BandlimitedOperators
  
-  using LinearAlgebra, FastGaussQuadrature, FINUFFT, StaticArrays
+  using LinearAlgebra, FastGaussQuadrature, FINUFFT, StaticArraysCore
 
   export FastBandlimited
 

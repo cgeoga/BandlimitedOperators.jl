@@ -4,8 +4,8 @@
 A simple package providing objects that implicitly represent the action of a
 bandlimited kernel matrix on a vector. This action is computed at the cost of
 two NUFFTs, which can often turn O(n^2) work into O(n \log n).  The
-implementation here is a simple extension of the 
-[fast sinc transform](https://msp.org/camcos/2006/1-1/camcos-v1-n1-p06-p.pdf).
+implementation here is based on the 
+[fast sinc transform](https://msp.org/camcos/2006/1-1/camcos-v1-n1-p06-p.pdf). 
 It uses [FINUFFT](https://github.com/ludvigak/FINUFFT.jl) internally, and so
 transforms are available in one, two, and three dimensions.
 
@@ -52,20 +52,3 @@ M = [sinc(18.1*(xj-xk))^2 for xj in pts1, xk in pts2]
 
 **Please see the files in `./example` for demonstrations in 2D.**
 
-# Citation
-
-Certainly this small extension of the fast sinc transform is not enough novel
-work to merit a paper. But if this package brought you functionality that
-benefited your work, I would very much appreciate you citing it. Metrics like
-that are useful and help people like me (whose job isn't really to write
-software) justify the time. Thanks in advance!
-```
-@software{Geoga_BandlimitedOperators_jl,
-author = {Geoga, Christopher J.},
-month = apr,
-title = {{BandlimitedOperators.jl}},
-url = {https://github.com/cgeoga/BandlimitedOperators.jl},
-version = {0.1.1},
-year = {2025}
-}
-```

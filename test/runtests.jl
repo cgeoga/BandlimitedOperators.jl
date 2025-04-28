@@ -1,6 +1,5 @@
 
-using Test, LinearAlgebra, StableRNGs, BandlimitedOperators
-using BandlimitedOperators.StaticArrays
+using Test, LinearAlgebra, StableRNGs, BandlimitedOperators, StaticArrays
 
 @testset "NUFFT" begin
   let scope_dummy = 0

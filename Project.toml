@@ -1,17 +1,17 @@
 name = "BandlimitedOperators"
 uuid = "c0e4beca-6dc6-4b2a-9565-ed1726c22a21"
 authors = ["Chris Geoga <geoga@wisc.edu>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 FINUFFT = "d8beea63-0952-562e-9c6a-8e8ef7364055"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 
 [compat]
-julia = "1"
 FINUFFT = "3.3.1"
 FastGaussQuadrature = "1.0.2"
 LinearAlgebra = "1.11.0"
-StaticArrays = "1.9.13"
+StaticArraysCore = "1.4.3"
+julia = "1"

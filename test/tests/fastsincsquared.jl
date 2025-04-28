@@ -25,7 +25,7 @@ end
 
 #2D:
 sincsqu2d(x) = (sinc(x[1])*sinc(x[2]))^2
-@testset "1D" begin
+@testset "2D" begin
   for (oj, bk) in Iterators.product(offsets, bandwidths)
     ptsj = [x + SA[oj, oj] for x in pts2D]
     fs   = FastBandlimited(pts2D, pts2D, x->(triangle(x[1], bk)*triangle(x[2], bk))/(bk^2), bk; 

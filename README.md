@@ -36,6 +36,10 @@ would do a fast sinc squared transform:
 pts1 = sort(rand(1000)).*3
 pts2 = sort(rand(1000)).*3
 
+# Note that the Fourier transform of sinc(x)^2 is a triangle function. That is
+# still an easy numerical integral...if you use a _panel_ quadrature rule
+# because the function is not smooth at the origin. So we provide that location
+# for splitting panels with roughpoints=(0.0,) (that arg should be an iterable):
 triangle(x, bw) = max(0.0, 1-abs(x)/bw)
 fastM = FastBandlimited(pts1, pts2, x->triangle(x, 18.1)/18.1, 18.1; 
                         roughpoints=(0.0,))

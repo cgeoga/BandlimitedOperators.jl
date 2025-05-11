@@ -1,10 +1,15 @@
 
 struct FastBandlimited
-  sym::Bool
-  sz::NTuple{2,Int64}
   ft1::NUFFT3
   ft2::NUFFT3
   op::Vector{ComplexF64}
+end
+
+function Base.display(fs::FastBandlimited)
+  println("FastBandlimited operator with:")
+  println("  - size: $(size(fs))")
+  println("  - dimension: $(length(fs.ft1.s2))")
+  println("  - quadrature rule order: $(length(fs.op))")
 end
 
 function glquadrule(n::Int64, a::Float64, b::Float64)
@@ -111,13 +116,14 @@ function FastBandlimited(s1, s2, fn, bandlimit;
   op  = complex(wt.*fn.(no))
   ft1 = NUFFT3(no, _s2.*(2*pi), false, 1e-15)
   ft2 = NUFFT3(no, _s1.*(2*pi), false, 1e-15)
-  FastBandlimited(s1==s2, (length(s1), length(s2)), ft1, ft2, op)
+  FastBandlimited(ft1, ft2, op)
 end
 
-LinearAlgebra.ishermitian(fs::FastBandlimited) = fs.sym
+LinearAlgebra.ishermitian(fs::FastBandlimited) = (fs.ft1.s2 == fs.ft2.s2)
+LinearAlgebra.issymmetric(fs::FastBandlimited) = (fs.ft1.s2 == fs.ft2.s2)
 LinearAlgebra.adjoint(fs::FastBandlimited) = Adjoint{Float64, FastBandlimited}(fs)
 Base.eltype(fs::FastBandlimited) = Float64
-Base.size(fs::FastBandlimited)   = fs.sz
+Base.size(fs::FastBandlimited)   = (size(fs.ft2, 2), size(fs.ft1, 2))
 Base.size(fs::FastBandlimited, j::Int) = size(fs)[j]
 
 

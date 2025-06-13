@@ -58,7 +58,7 @@ end
 
 # NOTE: this does _not_ do the 2pi scaling for you.
 function NUFFT3(s1::Matrix{Float64}, s2::Matrix{Float64}, sgn::Int;
-                    tol=1e-15, ncol=1, ncol_warning=true, make_adjoint=true)
+                tol=1e-15, ncol=1, ncol_warning=true, make_adjoint=true)
   iszero(sgn) && throw(error("Please provide sign as < 0 or > 0."))
   if ncol > 1 && ncol_warning
     @warn "Specifying ncol > 1 means that you can _only_ mul! this operator on things with exactly that number of columns. You can disable this warning with the kwarg ncol_warning=false in the constructor call." maxlog=1
@@ -69,7 +69,7 @@ function NUFFT3(s1::Matrix{Float64}, s2::Matrix{Float64}, sgn::Int;
 end
 
 function NUFFT3(s1::Vector{SVector{S,Float64}}, 
-                    s2::Vector{SVector{S,Float64}}, sgn::Int; kwargs...) where{S}
+                s2::Vector{SVector{S,Float64}}, sgn::Int; kwargs...) where{S}
   s1m = permutedims(reduce(hcat, s1))
   s2m = permutedims(reduce(hcat, s2))
   NUFFT3(s1m, s2m, sgn; kwargs...)

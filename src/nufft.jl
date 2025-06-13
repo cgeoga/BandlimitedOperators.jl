@@ -134,3 +134,67 @@ function Base.:*(afs::Adjoint{ComplexF64, NUFFT3}, x::Matrix{S}) where{S}
   mul!(buf, afs, complex(x))
 end
 
+struct NUFFT3Plan
+  plan::finufft_plan
+  sz::Tuple{Int64, Int64}
+  ncol::Int64
+end
+
+# NOTE: this does _not_ do the 2pi scaling for you.
+function NUFFT3Plan(s1::Matrix{Float64}, s2::Matrix{Float64}, sgn::Int;
+                    tol=1e-15, ncol=1, ncol_warning=true)
+  if ncol > 1 && ncol_warning
+    @warn "Specifying ncol > 1 means that you can _only_ mul! this operator on things with exactly that number of columns. You can disable this warning with the kwarg ncol_warning=false in the constructor call."
+  end
+  dim  = size(s1, 2)
+  isone(dim) || throw(error("for now"))
+  plan = finufft_makeplan(3, dim, Int32(sgn), ncol, tol)
+  if dim == 1
+    finufft_setpts!(plan, s2[:,1], Float64[], Float64[],
+                          s1[:,1], Float64[], Float64[])
+  elseif dim == 2
+    finufft_setpts!(plan, s2[:,1], s2[:,2], Float64[],
+                          s1[:,1], s1[:,2], Float64[])
+  elseif dim == 3
+    finufft_setpts!(plan, s2[:,1], s2[:,2], s2[:,3],
+                          s1[:,1], s1[:,2], s1[:,3])
+  else
+    throw(error("This transform is only implemented in dimensions {1,2,3}."))
+  end
+  NUFFT3Plan(plan, (size(s1, 1), size(s2, 1)), ncol)
+end
+
+function NUFFT3Plan(s1::Vector{Float64}, s2::Vector{Float64}, sgn::Int;
+                    tol=1e-15, ncol=1, ncol_warning=true)
+  NUFFT3Plan(hcat(s1), hcat(s2), sgn; tol=tol, ncol=ncol, ncol_warning=ncol_warning)
+end
+
+Base.eltype(nf::NUFFT3Plan)       = ComplexF64
+Base.size(nf::NUFFT3Plan)         = nf.sz
+Base.size(nf::NUFFT3Plan, j::Int) = size(nf)[j]
+
+# TODO (cg 2025/06/13 10:26): if nf.ncol != size(x,2), this throws an error that
+# is not easy to read. Should this method potentially add columns?
+function LinearAlgebra.mul!(buf, nf::NUFFT3Plan, x)
+  if nf.ncol == size(x, 2) == size(buf, 2)
+    finufft_exec!(nf.plan, x, buf)
+  elseif isone(nf.ncol) && (size(x, 2) > 1) && size(buf, 2) == size(x, 2)
+    for (bufj, xj) in zip(eachcol(buf), eachcol(x))
+      finufft_exec!(nf.plan, xj, bufj)
+    end
+  else
+    throw(error("Either your input and output sizes don't agree, or you specified your NUFFT3Plan operator to act on more than one column at once and the number of provided columns don't match that."))
+  end
+  buf
+end
+
+function Base.:*(fs::NUFFT3Plan, x::Vector)
+  buf = Array{ComplexF64}(undef, size(fs, 1))
+  mul!(buf, fs, complex(x))
+end
+
+function Base.:*(fs::NUFFT3Plan, x::Matrix)
+  buf = Array{ComplexF64}(undef, size(fs, 1), size(x, 2))
+  mul!(buf, fs, complex(x))
+end
+

@@ -151,8 +151,8 @@ function FastBandlimited(s1, s2, fn, bandlimit;
   (_s1, _s2) = internal_shift(s1, s2)
   (no, wt)   = bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
   op  = complex(wt.*fn.(no))
-  ft1 = NUFFT3(no, _s2.*(2*pi), false, 1e-15)
-  ft2 = NUFFT3(no, _s1.*(2*pi), false, 1e-15)
+  ft1 = NUFFT3(no, _s2.*(2*pi), -1)
+  ft2 = NUFFT3(no, _s1.*(2*pi), -1)
   FastBandlimited(ft1, ft2, op)
 end
 

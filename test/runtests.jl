@@ -1,5 +1,5 @@
 
-using Test, LinearAlgebra, StableRNGs, BandlimitedOperators, StaticArrays
+using Test, LinearAlgebra, StableRNGs, BandlimitedOperators, StaticArrays, Bessels
 
 @testset "NUFFT" begin
   let scope_dummy = 0
@@ -22,6 +22,12 @@ end
 @testset "Fast sinc squared" begin
   let scope_dummy = 0
     include("./tests/fastsincsquared.jl")
+  end
+end
+
+@testset "Polar coordinates" begin
+  let scope_dummy = 0
+    include("./tests/polar.jl")
   end
 end
 

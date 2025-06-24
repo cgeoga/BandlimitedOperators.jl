@@ -4,6 +4,9 @@ struct FastBandlimited
   ft2::NUFFT3
   herm::Bool
   op::Vector{ComplexF64}
+  buf_s1::Matrix{ComplexF64}
+  buf_no::Matrix{ComplexF64}
+  buf_s2::Matrix{ComplexF64}
 end
 
 function Base.display(fs::FastBandlimited)
@@ -67,10 +70,13 @@ function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit;
   else
     bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
   end
-  op  = complex(wt.*fn.(no))
-  ft1 = NUFFT3(no, _s2.*(2*pi), -1)
-  ft2 = NUFFT3(no, _s1.*(2*pi), -1)
-  FastBandlimited(ft1, ft2, s1==s2, op)
+  op   = complex(wt.*fn.(no))
+  ft1  = NUFFT3(no, _s2.*(2*pi), -1)
+  ft2  = NUFFT3(no, _s1.*(2*pi), -1)
+  buf_s1 = Matrix{ComplexF64}(undef, length(s1), 1)
+  buf_no = Matrix{ComplexF64}(undef, length(op), 1)
+  buf_s2 = Matrix{ComplexF64}(undef, length(s2), 1)
+  FastBandlimited(ft1, ft2, s1==s2, op, buf_s1, buf_no, buf_s2)
 end
 
 LinearAlgebra.ishermitian(fs::FastBandlimited) = fs.herm
@@ -80,48 +86,50 @@ Base.eltype(fs::FastBandlimited) = Float64
 Base.size(fs::FastBandlimited)   = (size(fs.ft2, 2), size(fs.ft1, 2))
 Base.size(fs::FastBandlimited, j::Int) = size(fs)[j]
 
-# TODO (cg 2025/06/24 13:36): arguably, this complex converstion that allocates
-# is already a violation of the promises of mul!. Making this _completely_
-# in-place is clearly still a question.
-function LinearAlgebra.mul!(buf, fs::FastBandlimited, v::VecOrMat{Float64})
-  cv = complex(v)
-  fourier_buf = fs.ft1*cv
-  for j in 1:size(fourier_buf, 2)
-    buf_colj   = view(fourier_buf, :, j)
-    buf_colj .*= fs.op
+function LinearAlgebra.mul!(buf, fs::FastBandlimited, v)
+  for j in 1:size(v, 2)
+    copyto!(fs.buf_s2, view(v, :, j))
+    finufft_exec!(fs.ft1.plan, fs.buf_s2, fs.buf_no)
+    fs.buf_no .*= fs.op 
+    finufft_exec!(fs.ft2.adjplan, fs.buf_no, fs.buf_s1)
+    for k in 1:size(buf, 1)
+      buf[k,j] = real(fs.buf_s1[k])
+    end
   end
-  tmp  = fs.ft2'*fourier_buf
-  buf .= real(tmp)
+  buf
 end
 
-function Base.:*(fs::FastBandlimited, v)
-  out = if (v isa Vector{Float64})
-    Array{Float64}(undef, size(fs, 1))
-  else
-    Array{Float64}(undef, (size(fs, 1), size(v,2)))
-  end
+function Base.:*(fs::FastBandlimited, v::AbstractVector{Float64})
+  out = Array{Float64}(undef, size(fs, 1))
   mul!(out, fs, v)
 end
 
-function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited}, 
-                            v::VecOrMat{Float64}) 
-  fs = afs.parent
-  cv = complex(v)
-  fourier_buf = fs.ft2*cv
-  for j in 1:size(fourier_buf, 2)
-    buf_colj   = view(fourier_buf, :, j)
-    buf_colj .*= fs.op
-  end
-  tmp = fs.ft1'*fourier_buf
-  buf.= real(tmp)
+function Base.:*(fs::FastBandlimited, v::AbstractMatrix{Float64})
+  out = Array{Float64}(undef, (size(fs, 1), size(v,2)))
+  mul!(out, fs, v)
 end
 
-function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v)
-  out = if (v isa Vector{Float64})
-    Array{Float64}(undef, size(afs, 1))
-  else
-    Array{Float64}(undef, (size(afs, 1), size(v,2)))
+function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited}, v) 
+  fs = afs.parent
+  for j in 1:size(v, 2)
+    copyto!(fs.buf_s1, view(v, :, j))
+    finufft_exec!(fs.ft2.plan, fs.buf_s1, fs.buf_no)
+    fs.buf_no .*= fs.op 
+    finufft_exec!(fs.ft1.adjplan, fs.buf_no, fs.buf_s2)
+    for k in 1:size(buf, 1)
+      buf[k,j] = real(fs.buf_s2[k])
+    end
   end
+  buf
+end
+
+function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v::AbstractVector{Float64})
+  out = Array{Float64}(undef, size(afs, 1))
+  mul!(out, afs, v)
+end
+
+function Base.:*(afs::Adjoint{Float64, FastBandlimited}, v::AbstractMatrix{Float64})
+  out = Array{Float64}(undef, (size(afs, 1), size(v,2)))
   mul!(out, afs, v)
 end
 

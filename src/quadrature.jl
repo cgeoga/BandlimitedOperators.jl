@@ -79,7 +79,7 @@ end
 function bandlimited_quadrule(s1::Vector{SVector{D,Float64}}, 
                               s2::Vector{SVector{D,Float64}}, 
                               bandlimit, quadn_add, roughpoints) where{D}
-  bandlimits = (bandlimit isa Float64) ? ntuple(_->bandlimit, D) : bandlimits
+  bandlimits = (bandlimit isa Float64) ? ntuple(_->bandlimit, D) : bandlimit
   quadnv = ntuple(D) do j
     fmaxj = highest_frequency(s1, s2, j)
     Int(ceil(4*bandlimits[j]*fmaxj + quadn_add))

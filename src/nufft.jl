@@ -25,13 +25,17 @@ end
   -- `tol=1e-15`: The accuracy of the NUFFT. Unless you have a specific reason
      to make it looser, we suggest keeping it at the default `1e-15`.
 
-  -- `ncol=1`: the number of columns of a matrix that the object can act on at once. If you leave `ncol=1`, this package has methods to automatically apply to several columns in a loop. But if you set `ncol` to be >1, then it will be your responsibility to make sure that you pass in your `mul!` arguments with the appropriate number of columns (or else you get an error).
+  -- `ncol=1`: If you `*` or `mul!` with a matrix that has `ncol` columns, a pre-computed plan will be used, potentially saving some time. Otherwise, a non-guru mode `nufft[d]d3!` will be executed instead. The default is 1 so that if you pass this operator to a Krylov tool or other standard matvec-only methods you'll get to take advantage of the plan. But for acting on a variable number of columns, it is faster to use the non-guru mode.
 
   -- `ncol_warning=true`: a kwarg giving you the option to disable the warning about `ncol` above.
 
   -- `make_adjoint=true`: whether or not to also build the adjoint operator. If you want to do `fs'*v`, then you need to do this. But if you know you won't need to do this, you can save the (slight) memory and time with `make_adjoint=false`.
 """
 struct NUFFT3
+  s1v::Vector{Vector{Float64}}
+  s2v::Vector{Vector{Float64}}
+  sgn::Int
+  tol::Float64
   plan::finufft_plan
   adjplan::Union{finufft_plan, Nothing}
   sz::Tuple{Int64, Int64}
@@ -63,9 +67,12 @@ function NUFFT3(s1::Matrix{Float64}, s2::Matrix{Float64}, sgn::Int;
   if ncol > 1 && ncol_warning
     @warn "Specifying ncol > 1 means that you can _only_ mul! this operator on things with exactly that number of columns. You can disable this warning with the kwarg ncol_warning=false in the constructor call." maxlog=1
   end
+  size(s1, 2) == size(s2, 2) || throw(error("Your two point sources and targets don't have the same dimension."))
+  1 <= size(s1, 2) <= 3  || throw(error("FINUFFT only offers transforms in dimensions 1 ≤ d ≤ 3."))
   plan = nufft3plan(s1, s2, sgn, tol, ncol)
   adjplan = make_adjoint ? nufft3plan(s2, s1, -sgn, tol, ncol) : nothing
-  NUFFT3(plan, adjplan, (size(s1, 1), size(s2, 1)), ncol)
+  NUFFT3(collect.(eachcol(s1)), collect.(eachcol(s2)), sgn, tol,
+         plan, adjplan, (size(s1, 1), size(s2, 1)), ncol)
 end
 
 function NUFFT3(s1::Vector{SVector{S,Float64}}, 
@@ -88,28 +95,42 @@ LinearAlgebra.adjoint(nf::NUFFT3) = Adjoint(nf)
 # TODO (cg 2025/06/13 10:26): if nf.ncol != size(x,2), this throws an error that
 # is not easy to read. Should this method potentially add columns?
 function LinearAlgebra.mul!(buf, nf::NUFFT3, x)
-  if nf.ncol == size(x, 2) == size(buf, 2)
+  size(nf, 2) == size(x, 1) || throw(error("Dimensions of your operator and argument don't agree."))
+  if nf.ncol  == size(x, 2) == size(buf, 2)
     finufft_exec!(nf.plan, x, buf)
-  elseif isone(nf.ncol) && (size(x, 2) > 1) && size(buf, 2) == size(x, 2)
-    for (bufj, xj) in zip(eachcol(buf), eachcol(x))
-      finufft_exec!(nf.plan, xj, bufj)
-    end
   else
-    throw(error("Either your input and output sizes don't agree, or you specified your NUFFT3 operator to act on more than one column at once and the number of provided columns don't match that."))
+    dim = length(nf.s1v)
+    if dim == 1
+      nufft1d3!(nf.s2v[1], x, nf.sgn, nf.tol, 
+                nf.s1v[1], buf)
+    elseif dim == 2
+      nufft2d3!(nf.s2v[1], nf.s2v[2], x, nf.sgn, nf.tol, 
+                nf.s1v[1], nf.s1v[2], buf)
+    else
+      nufft3d3!(nf.s2v[1], nf.s2v[2], nf.s2v[3], x, nf.sgn, nf.tol, 
+                nf.s1v[1], nf.s1v[2], nf.s1v[3], buf)
+    end
   end
   buf
 end
 
 function LinearAlgebra.mul!(buf, anf::Adjoint{ComplexF64, NUFFT3}, x)
   nf = anf.parent
+  size(nf, 1) == size(x, 1) || throw(error("Dimensions of your operator and argument don't agree."))
   if nf.ncol == size(x, 2) == size(buf, 2)
     finufft_exec!(nf.adjplan, x, buf)
-  elseif isone(nf.ncol) && (size(x, 2) > 1) && size(buf, 2) == size(x, 2)
-    for (bufj, xj) in zip(eachcol(buf), eachcol(x))
-      finufft_exec!(nf.adjplan, xj, bufj)
-    end
   else
-    throw(error("Either your input and output sizes don't agree, or you specified your NUFFT3 operator to act on more than one column at once and the number of provided columns don't match that."))
+    dim = length(nf.s1v)
+    if dim == 1
+      nufft1d3!(nf.s1v[1], x, -nf.sgn, nf.tol, 
+                nf.s2v[1], buf)
+    elseif dim == 2
+      nufft2d3!(nf.s1v[1], nf.s1v[2], x, -nf.sgn, nf.tol, 
+                nf.s2v[1], nf.s2v[2], buf)
+    else
+      nufft3d3!(nf.s1v[1], nf.s1v[2], nf.s1v[3], x, -nf.sgn, nf.tol, 
+                nf.s2v[1], nf.s2v[2], nf.s2v[3], buf)
+    end
   end
   buf
 end

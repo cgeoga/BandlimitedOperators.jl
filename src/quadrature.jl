@@ -138,3 +138,13 @@ function internal_shift(s1::Vector{SVector{D,Float64}},
    [SVector{D,Float64}(x.data.-shifter.data) for x in s2])
 end
 
+function shifted_bandlimited_quadrule(s1, s2, bandlimit, quadn_add, roughpoints; polar=false)
+  (_s1, _s2) = internal_shift(s1, s2)
+  (no, wt) = if polar
+    polar_bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
+  else
+    bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
+  end
+  (;_s1, _s2, no, wt)
+end
+

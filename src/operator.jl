@@ -64,15 +64,11 @@ Keyword arguments are:
 function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit; 
                          quadn_add=default_extra_quad(s1), 
                          roughpoints=nothing, polar=false)
-  (_s1, _s2) = internal_shift(s1, s2)
-  (no, wt)   = if polar 
-    polar_bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
-  else
-    bandlimited_quadrule(_s1, _s2, bandlimit, quadn_add, roughpoints)
-  end
-  op   = complex(wt.*fn.(no))
-  ft1  = NUFFT3(no, _s2.*(2*pi), -1)
-  ft2  = NUFFT3(no, _s1.*(2*pi), -1)
+  rule = shifted_bandlimited_quadrule(s1, s2, bandlimit, quadn_add, 
+                                      roughpoints; polar=polar)
+  op   = complex(rule.wt.*fn.(rule.no))
+  ft1  = NUFFT3(rule.no, rule._s2.*(2*pi), -1)
+  ft2  = NUFFT3(rule.no, rule._s1.*(2*pi), -1)
   buf_s1 = Matrix{ComplexF64}(undef, length(s1), 1)
   buf_no = Matrix{ComplexF64}(undef, length(op), 1)
   buf_s2 = Matrix{ComplexF64}(undef, length(s2), 1)

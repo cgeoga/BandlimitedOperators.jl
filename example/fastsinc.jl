@@ -14,7 +14,7 @@ M = [sinc(2*18.1*(xj-xk)) for xj in pts1, xk in pts2]
 # We approximate it with a FastBandlimited object. Note the Fourier transform of
 # this kernel function is precisely ω ↦ 2*χ(|ω| ≤ 18.1)/18.1, so that is the
 # third argument here.
-fastM = FastBandlimited(pts1, pts2, x->inv(2*18.1), 18.1; quadn_add=10)
+fastM = FastBandlimited(pts1, pts2, x->inv(2*18.1), 18.1)
 buf   = zeros(length(x))
 mul!(buf, fastM, x)
 
@@ -35,7 +35,7 @@ pts2 = rand(SVector{2,Float64}, 1000).*3
 sinc2d(t) = sinc(t[1])*sinc(t[2])
 M = [sinc2d(2*3.3*(xj-xk)) for xj in pts1, xk in pts2]
 
-fastM = FastBandlimited(pts1, pts2, x->inv((2*3.3)^2), 3.3; quadn_add=30)
+fastM = FastBandlimited(pts1, pts2, x->inv((2*3.3)^2), 3.3)
 mul!(buf, fastM, x)
 
 @show maximum(abs, M*x - buf)

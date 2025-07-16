@@ -145,12 +145,13 @@ function Base.:*(fs::Adjoint{ComplexF64, NUFFT3}, x::Vector)
   mul!(buf, fs, complex(x))
 end
 
-function Base.:*(fs::NUFFT3, x::Matrix)
+function Base.:*(fs::NUFFT3, x::AbstractMatrix)
   buf = Array{ComplexF64}(undef, size(fs, 1), size(x, 2))
   mul!(buf, fs, complex(x))
 end
 
-function Base.:*(fs::Adjoint{ComplexF64, NUFFT3}, x::Matrix)
+function Base.:*(fs::Adjoint{ComplexF64, NUFFT3}, x::AbstractMatrix)
   buf = Array{ComplexF64}(undef, size(fs, 1), size(x, 2))
   mul!(buf, fs, complex(x))
 end
+

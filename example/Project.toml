@@ -1,5 +1,6 @@
 [deps]
 BandlimitedOperators = "c0e4beca-6dc6-4b2a-9565-ed1726c22a21"
 Bessels = "0e736298-9ec6-45e8-9647-e4fc86a2fe38"
+Chairmarks = "0ca39b1e-fe0b-4e98-acfc-b1656634c4de"
 LowRankApprox = "898213cb-b102-5a47-900c-97e73b919f73"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

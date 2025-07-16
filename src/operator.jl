@@ -7,6 +7,7 @@ struct FastBandlimited
   buf_s1::Matrix{ComplexF64}
   buf_no::Matrix{ComplexF64}
   buf_s2::Matrix{ComplexF64}
+  allocating_mul::Bool
 end
 
 function Base.display(fs::FastBandlimited)
@@ -60,10 +61,14 @@ Keyword arguments are:
   kernel matrices and at present supports only disk-supported kernels, not
   general ellipses. But ellipses wouldn't be a huge challenge to add, so if you
   need that functionality please open an issue and we can talk.
+
+- `allocating_mul::Bool=false`. This argument gives you the option (by providing `true`)
+  of incurring allocations in `mul!(buf, fs::FastBandlimited, v)` in exchange for gaining
+  a speedup in applying your operator to multiple columns of a matrix at once.
 """
 function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit; 
                          quadn_add=default_extra_quad(s1), 
-                         roughpoints=nothing, polar=false)
+                         roughpoints=nothing, polar=false, allocating_mul=false)
   rule = shifted_bandlimited_quadrule(s1, s2, bandlimit, quadn_add, 
                                       roughpoints; polar=polar)
   op   = complex(rule.wt.*fn.(rule.no))
@@ -72,7 +77,7 @@ function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit;
   buf_s1 = Matrix{ComplexF64}(undef, length(s1), 1)
   buf_no = Matrix{ComplexF64}(undef, length(op), 1)
   buf_s2 = Matrix{ComplexF64}(undef, length(s2), 1)
-  FastBandlimited(ft1, ft2, s1==s2, op, buf_s1, buf_no, buf_s2)
+  FastBandlimited(ft1, ft2, s1==s2, op, buf_s1, buf_no, buf_s2, allocating_mul)
 end
 
 LinearAlgebra.ishermitian(fs::FastBandlimited) = fs.herm
@@ -83,14 +88,21 @@ Base.size(fs::FastBandlimited)   = (size(fs.ft2, 2), size(fs.ft1, 2))
 Base.size(fs::FastBandlimited, j::Int) = size(fs)[j]
 
 function LinearAlgebra.mul!(buf, fs::FastBandlimited, v)
-  for j in 1:size(v, 2)
-    copyto!(fs.buf_s2, view(v, :, j))
-    finufft_exec!(fs.ft1.plan, fs.buf_s2, fs.buf_no)
-    fs.buf_no .*= fs.op 
-    finufft_exec!(fs.ft2.adjplan, fs.buf_no, fs.buf_s1)
-    for k in 1:size(buf, 1)
-      buf[k,j] = real(fs.buf_s1[k])
+  if !fs.allocating_mul || isone(size(v, 2))
+    for j in 1:size(v, 2)
+      copyto!(fs.buf_s2, view(v, :, j))
+      finufft_exec!(fs.ft1.plan, fs.buf_s2, fs.buf_no)
+      fs.buf_no .*= fs.op 
+      finufft_exec!(fs.ft2.adjplan, fs.buf_no, fs.buf_s1)
+      for k in 1:size(buf, 1)
+        buf[k,j] = real(fs.buf_s1[k])
+      end
     end
+  else
+    tmp1 = fs.ft1*v
+    foreach(j->(view(tmp1, :, j) .*= fs.op), 1:size(v, 2))
+    tmp2 = fs.ft2'*tmp1
+    foreach(j->(buf[j] = real(tmp2[j])), eachindex(buf))
   end
   buf
 end
@@ -107,14 +119,21 @@ end
 
 function LinearAlgebra.mul!(buf, afs::Adjoint{Float64, FastBandlimited}, v) 
   fs = afs.parent
-  for j in 1:size(v, 2)
-    copyto!(fs.buf_s1, view(v, :, j))
-    finufft_exec!(fs.ft2.plan, fs.buf_s1, fs.buf_no)
-    fs.buf_no .*= fs.op 
-    finufft_exec!(fs.ft1.adjplan, fs.buf_no, fs.buf_s2)
-    for k in 1:size(buf, 1)
-      buf[k,j] = real(fs.buf_s2[k])
+  if !fs.allocating_mul || isone(size(v, 2))
+    for j in 1:size(v, 2)
+      copyto!(fs.buf_s1, view(v, :, j))
+      finufft_exec!(fs.ft2.plan, fs.buf_s1, fs.buf_no)
+      fs.buf_no .*= fs.op 
+      finufft_exec!(fs.ft1.adjplan, fs.buf_no, fs.buf_s2)
+      for k in 1:size(buf, 1)
+        buf[k,j] = real(fs.buf_s2[k])
+      end
     end
+  else
+    tmp1 = fs.ft2*v
+    foreach(j->(view(tmp1, :, j) .*= fs.op), 1:size(v, 2))
+    tmp2 = fs.ft1'*tmp1
+    foreach(j->(buf[j] = real(tmp2[j])), eachindex(buf))
   end
   buf
 end

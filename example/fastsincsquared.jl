@@ -22,7 +22,7 @@ M = [sinc(18.1*(xj-xk))^2 for xj in pts1, xk in pts2]
 # Fourier transform of our kernel function has a rough point at the origin. If
 # you don't do this, the quadrature rule being used internally won't be accurate
 # and you will get very few correct digits.
-fastM = FastBandlimited(pts1, pts2, x->triangle(x, 18.1)/18.1, 18.1; quadn_add=10, roughpoints=(0.0,))
+fastM = FastBandlimited(pts1, pts2, x->triangle(x, 18.1)/18.1, 18.1; roughpoints=(0.0,))
 buf   = zeros(length(x))
 mul!(buf, fastM, x)
 
@@ -44,7 +44,7 @@ sincsquared2d(t) = (sinc(t[1])*sinc(t[2]))^2
 M = [sincsquared2d(3.3*(xj-xk)) for xj in pts1, xk in pts2]
 
 fastM = FastBandlimited(pts1, pts2, x->triangle(x[1], 3.3)*triangle(x[2], 3.3)/(3.3^2), 3.3;
-                        quadn_add=30, roughpoints=(SA[0.0, 0.0],))
+                        roughpoints=(SA[0.0, 0.0],))
 mul!(buf, fastM, x)
 
 @show maximum(abs, M*x - buf)

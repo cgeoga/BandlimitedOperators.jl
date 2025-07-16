@@ -1,6 +1,12 @@
 
 using Test, LinearAlgebra, StableRNGs, BandlimitedOperators, StaticArrays, Bessels
 
+# TODO (cg 2025/07/16 09:42): 
+#
+# 1. Write tests for kernels where the FT support is a rectangle and not a square.
+# 2. Write more tests for the polar case.
+# 3. Develop (and write tests for) ellipsoidal support.
+
 @testset "NUFFT" begin
   let scope_dummy = 0
     include("./tests/nufft.jl")

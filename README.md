@@ -4,7 +4,7 @@
 A simple package providing objects that implicitly represent the action of a
 bandlimited kernel matrix on a vector. This action is computed at the cost of
 two NUFFTs, which can often turn O(n^2) work into O(n \log n).  The
-implementation here is based on the 
+implementation here is based on the approach of the
 [fast sinc transform](https://msp.org/camcos/2006/1-1/camcos-v1-n1-p06-p.pdf). 
 It uses [FINUFFT](https://github.com/ludvigak/FINUFFT.jl) internally, and so
 transforms are available in one, two, and three dimensions.
@@ -81,6 +81,8 @@ kernel FT as being a disk of radius `bandwidth` **in two dimensions only** like 
 ```julia
 pts1  = [...] # ::Vector{SVector{2,Float64}}
 pts2  = [...] # ::Vector{SVector{2,Float64}}
+
+# the kernel ft `fn` should still be in __cartesian__ coordinates!
 fastM = FastBandlimited(pts1, pts2, fn, bandwidth; polar=true)
 ```
 **Note:** As of now, the quadrature rule being used in the Fourier domain is a

@@ -117,9 +117,10 @@ function polar_bandlimited_quadrule(s1::Vector{SVector{2,Float64}},
 end
 
 # TODO (cg 2025/04/28 09:37): could choose more thoughtful default values here.
-default_extra_quad(s1::Vector{Float64})            = 100 # 100  extra nodes
-default_extra_quad(s1::Vector{SVector{2,Float64}}) = 20  # 400  extra nodes
-default_extra_quad(s1::Vector{SVector{3,Float64}}) = 10  # 1000 extra nodes (least tested)
+default_extra_quad(s1::Vector{Float64})             = 100 # 100  extra nodes total
+default_extra_quad(s1::Vector{SVector{1,Float64}})  = 100 # 100  extra nodes total
+default_extra_quad(s1::Vector{SVector{2,Float64}})  = 20  # 400  extra nodes total
+default_extra_quad(s1::Vector{SVector{3,Float64}})  = 10  # 1000 extra nodes (least tested)
 
 function internal_shift(s1::Vector{Float64}, s2::Vector{Float64})
   shifter = (sum(s1)/length(s1) + sum(s2)/length(s2))/2 

@@ -1,7 +1,7 @@
 name = "BandlimitedOperators"
 uuid = "c0e4beca-6dc6-4b2a-9565-ed1726c22a21"
 authors = ["Chris Geoga <geoga@wisc.edu>"]
-version = "0.1.5"
+version = "0.1.6"
 
 [deps]
 FINUFFT = "d8beea63-0952-562e-9c6a-8e8ef7364055"

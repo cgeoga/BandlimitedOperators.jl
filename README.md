@@ -57,6 +57,12 @@ M = [sinc(18.1*(xj-xk))^2 for xj in pts1, xk in pts2]
 @show maximum(abs, M*x - buf) # ~1e-13
 ```
 
+**NOTE:** Even if the Fourier transform of your kernel is smooth at the origin,
+if it has anything resembling a sharp peak there (or at any other location), it
+is likely advantageous for you to provide the locations for those sharp peaks as
+`roughpoints`. The default `roughpoints` argument is now (as of v0.1.7) the
+origin (except in the case of `polar=true`, see below).
+
 ## Applying to multiple vectors at a time
 
 By default, `FastBandlimited` uses planned "guru-mode" NUFFTs, which can provide

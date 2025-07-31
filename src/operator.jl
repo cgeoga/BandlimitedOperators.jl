@@ -16,10 +16,16 @@ function Base.display(fs::FastBandlimited)
   println("  - quadrature rule order: $(length(fs.op))")
 end
 
+function default_roughpoints(s1, polar)
+  polar && return nothing
+  (zero(eltype(s1)),)
+end
+
 """
 `FastBandlimited(s1, s2, fun, bandlimit;
                 quadn_add=default_extra_quad(s1),
-                roughpoints=nothing)`
+                polar=false,
+                roughpoints=default_roughpoints(s1, polar))`
 
 A constructor for a `FastBandlimited` object that represents the action of a matrix
 `M` with entries `M[j,k] = g(s1[j] - s2[k])` with `g` satisfying
@@ -44,14 +50,18 @@ Keyword arguments are:
   So be careful. You hopefully won't have to touch this argument so long as you
   provide roughpoints correctly.
 
-- `roughpoints::Union{Nothing, [iterable]{D,Float64}}=nothing`. This argument 
-  is the way that you communicate locations at which `fun` is not smooth. If
-  you don't do this, the quadrature rule will be much less accurate. This kwarg
-  should just be an iterable of frequencies that match the dimension and type of
-  your location. See the example file of the fast sinc squared transform for an
-  example of telling `FastBandlimited` that the 2D triangular function is rough 
-  at the origin. This is an important arg to get right! And there is no easy way
-  for the code to catch it if you forget---you'll just silently get wrong answers.
+- `roughpoints::Union{Nothing, [iterable]{D,Float64}}`. 
+  This argument is the way that you communicate locations at which `fun` is not
+  smooth. If you don't do this, the quadrature rule will be much less accurate.
+  This kwarg should just be an iterable of frequencies that match the dimension
+  and type of your location. See the example file of the fast sinc squared
+  transform for an example of telling `FastBandlimited` that the 2D triangular
+  function is rough at the origin. This is an important arg to get right! And
+  there is no easy way for the code to catch it if you forget---you'll just
+  silently get wrong answers. **NOTE:** Newly added to this library is a default
+  that puts one rough point in the origin of `polar=false`. Since by far the most
+  common place for discontinuities or sharp peaks is the origin, this default value
+  will hopefully just protect users from that standard "gotcha".
 
 - `polar::Bool=false`. This arguments indicates whether `fun`, the FT of your
   kernel, is compactly supported on a disk of radius `bandlimit` instead of a
@@ -68,7 +78,11 @@ Keyword arguments are:
 """
 function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit; 
                          quadn_add=default_extra_quad(s1), 
-                         roughpoints=nothing, polar=false, allocating_mul=false)
+                         polar=false, allocating_mul=false,
+                         roughpoints=default_roughpoints(s1, polar))
+  if roughpoints != default_roughpoints(s1, polar)
+    @warn "This routine adds a default roughpoint at the origin. Since you are providing your own rough points list, please be mindful to now manually at that origin roughpoint if you need it." maxlog=1
+  end
   rule = shifted_bandlimited_quadrule(s1, s2, bandlimit, quadn_add, 
                                       roughpoints; polar=polar)
   op   = complex(rule.wt.*fn.(rule.no))

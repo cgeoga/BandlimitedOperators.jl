@@ -7,33 +7,43 @@ two NUFFTs, which can often turn O(n^2) work into O(n \log n).  The
 implementation here is based on the approach of the
 [fast sinc transform](https://msp.org/camcos/2006/1-1/camcos-v1-n1-p06-p.pdf). 
 It uses [FINUFFT](https://github.com/ludvigak/FINUFFT.jl) internally, and so
-transforms are available in one, two, and three dimensions.
+transforms are available in one, two, and three dimensions. 
 
-## A quick demo:
+If you have a kernel function $K(x - x')$ whose Fourier transform is
+$$
+    K(x - x') = \int_{[-W, W]^d} e^{2 \pi i \omega (x - x')} S(\omega) d
+\omega
+$$
+(note the $2 \pi$, which is the form that this package uses!), then you can
+accelerate matvecs with the matrix `M[j,k] = K(xv1[j] - xv2[k])` as follows:
 
 ```julia
 using BandlimitedOperators
 
-pts1 = sort(rand(1000)).*3
-pts2 = sort(rand(1000)).*3
+xv1 = sort(rand(1000)).*3
+xv2 = sort(rand(1000)).*3
+
+const W = 18.1
+K(h) = sinc(2*W*h) # K(x - x'), h = x-x'
+S(w) = inv(2*W)
 
 # The matrix we want to approximate, which corresponds to a kernel matrix whose
 # kernel function's Fourier transform is supported on [-18.1, 18.1].
-M = [sinc(2*18.1*(xj-xk)) for xj in pts1, xk in pts2]
+M = [K(xj - xk) for xj in pts1, xk in pts2]
 
 # We approximate it with a FastBandlimited object. Note the Fourier transform of
 # this kernel function is precisely ω ↦ 2*χ(|ω| ≤ 18.1)/18.1, so that is the
 # third argument here.
-fastM = FastBandlimited(pts1, pts2, x->inv(2*18.1), 18.1)
+fastM = FastBandlimited(xv1, xv2, S, W)
 
-x = randn(1000)
+x = length(xv1)
 @show maximum(abs, M*x - fastM*x) # ~1e-13
 ```
 
 ## Non-smooth points in your kernel's Fourier transform
 
-If you have a kernel function whose Fourier transform has non-smooth points,
-please pass those in with the `roughpoints` API. For example, here is how you
+If you have a kernel function whose Fourier transform $S$ has non-smooth points,
+please pass those in with the `roughpoints` option. For example, here is how you
 would do a fast sinc squared transform:
 ```julia
 pts1 = sort(rand(1000)).*3

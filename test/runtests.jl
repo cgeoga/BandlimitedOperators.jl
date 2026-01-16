@@ -1,5 +1,6 @@
 
-using Test, LinearAlgebra, StableRNGs, BandlimitedOperators, StaticArrays, Bessels
+using Test, StableRNGs, BandlimitedOperators, StaticArrays, Bessels
+using BandlimitedOperators.LinearAlgebra
 
 # TODO (cg 2025/07/16 09:42): 
 #

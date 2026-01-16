@@ -41,7 +41,7 @@ function glquadrule(n::Int64, ab_breakpoints::AbstractVector{Float64})
   bma    = ab_breakpoints[end] - ab_breakpoints[1]
   ivs    = collect(zip(ab_breakpoints, ab_breakpoints[2:end]))
   nquadv = map(ivs) do (aj, bj)
-    Int(ceil(n*(bj-aj)/bma ))
+    Int(ceil(n*(bj-aj)/bma))
   end
   no_wt_v = [glquadrule(nquadv[j], ivs[j][1], ivs[j][2]) for j in eachindex(ivs)]
   (reduce(vcat, getindex.(no_wt_v, 1)), reduce(vcat, getindex.(no_wt_v, 2)))

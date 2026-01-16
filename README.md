@@ -10,10 +10,10 @@ It uses [FINUFFT](https://github.com/ludvigak/FINUFFT.jl) internally, and so
 transforms are available in one, two, and three dimensions. 
 
 If you have a kernel function $K(x - x')$ whose Fourier transform is
-$$
-    K(x - x') = \int_{[-W, W]^d} e^{2 \pi i \omega (x - x')} S(\omega) d
-\omega
-$$
+
+$$K(x - x') = \int_{[-W, W]^d} e^{2 \pi i \omega (x - x')} S(\omega) d
+\omega$$
+
 (note the $2 \pi$, which is the form that this package uses!), then you can
 accelerate matvecs with the matrix `M[j,k] = K(xv1[j] - xv2[k])` as follows:
 

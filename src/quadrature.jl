@@ -16,18 +16,17 @@ function glquadrule(n::Int64, a::Float64, b::Float64)
   (no, wt)
 end
 
-# TODO (cg 2025/06/24 10:43): note that this includes the extra r term in the
-# change-of-variables going from euclidean to polar. I'm not sure if that is
-# something this code should do or users should be trusted to handle themselves.
-function polar_quadrule(nquadr::Int, nquadth_scale, rmax; min_nquadth::Int=8)
-  # Gauss-Legendre for the radial part.
+# NOTE: this includes the extra r term in the change-of-variables going from
+# euclidean to polar, as this will get converted back to a Cartesian coordinates
+# rule before it is actually used.
+function polar_quadrule(nquadr::Int, rmax::Float64; min_nquadth::Int=4)
   (radial_no, radial_wt) = glquadrule(nquadr, 0.0, rmax)
+  nquadth_scale = 2*pi*nquadr/rmax
   circular_rules = map(eachindex(radial_no)) do j
     (rnoj, rwtj) = (radial_no[j], radial_wt[j])
-    # Trapezoidal for each of the angular parts.
-    cnquadj = max(min_nquadth, Int(ceil(rnoj*nquadth_scale)))
+    cnquadj = max(min_nquadth, Int(ceil(rnoj * nquadth_scale))) + 3 # a little extra runway
     (cnoj, cwtj) = trapquadrule(cnquadj, 0.0, 2*pi; periodic=true)
-    ([SVector{2,Float64}((rnoj, cj)) for cj in cnoj], cwtj.*(rwtj*rnoj))
+    ([SVector{2,Float64}((rnoj, cj)) for cj in cnoj], cwtj .* (rwtj * rnoj))
   end
   (reduce(vcat, getindex.(circular_rules, 1)), 
    reduce(vcat, getindex.(circular_rules, 2)))
@@ -112,7 +111,7 @@ function polar_bandlimited_quadrule(s1::Vector{SVector{2,Float64}},
   end
   fmax  = maximum(j->highest_frequency(s1, s2, j), 1:2)
   nquad = Int(ceil(2*pi*bandlimit*fmax + quadn_add))
-  (no_polar, wt) = polar_quadrule(nquad, 4*pi*nquad, bandlimit)
+  (no_polar, wt) = polar_quadrule(nquad, bandlimit)
   (polar_to_cartesian.(no_polar), wt)
 end
 

@@ -2,7 +2,7 @@
 #
 # Testset 1: the mixed GL+trapezoidal polar coordinate quadrature.
 #
-(no_polar, wt) = BandlimitedOperators.polar_quadrule(100, 20, 1.0)
+(no_polar, wt) = BandlimitedOperators.polar_quadrule(100, 1.0)
 no_cartesian   = BandlimitedOperators.polar_to_cartesian.(no_polar)
 @test sum(wt) ≈ pi
 

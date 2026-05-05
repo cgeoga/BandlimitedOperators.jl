@@ -34,3 +34,18 @@ sinc2d(x) = sinc(x[1])*sinc(x[2])
   end
 end
 
+# Anisotropic:
+@testset "2D (anisotropic)" begin
+  A = @SMatrix [1.0 0.1
+                0.1 1.0]
+  U = cholesky(A).U
+  for (oj, bk) in Iterators.product(offsets, bandwidths)
+    ptsj = [x + SA[oj, oj] for x in pts2D]
+    fs   = FastBandlimited(pts2D, pts2D, x->inv((2*bk)^2), bk; warp=x->U'\x)
+    M    = [sinc2d(2*bk*(U'\xj-U'\xk)) for xj in ptsj, xk in ptsj]
+    tmp  = similar(v)
+    mul!(tmp, fs, v)
+    @test maximum(abs, tmp-M*v) < 1e-11
+  end
+end
+

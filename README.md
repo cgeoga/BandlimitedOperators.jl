@@ -112,5 +112,4 @@ oversampling than is necessary.
 ## Roadmap (PRs welcome!)
 
 - `spherical=true` in 3D
-- Supporting ellipsoidal support regions for kernel FTs in 2 and 3 dimensions
 

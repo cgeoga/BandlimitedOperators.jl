@@ -24,11 +24,11 @@ end
 """
 `FastBandlimited(s1, s2, fun, bandlimit;
                 quadn_add=default_extra_quad(s1),
-                polar=false,
+                polar=false, warp=identity,
                 roughpoints=default_roughpoints(s1, polar))`
 
 A constructor for a `FastBandlimited` object that represents the action of a matrix
-`M` with entries `M[j,k] = g(s1[j] - s2[k])` with `g` satisfying
+`M` with entries `M[j,k] = g(warp(s1[j]) - warp(s2[k]))` with `g` satisfying
 
 \$ g(t) = ∫_{[-bandlimit, bandlimit]^{dim}} e^{-2 π i t^T ω} fun(ω) d ω \$
 
@@ -49,6 +49,10 @@ Keyword arguments are:
   breaking a sweat. But if you make it 1000 in 3D, you're adding 10^9 nodes! 
   So be careful. You hopefully won't have to touch this argument so long as you
   provide roughpoints correctly.
+
+- `warp=identity`. A transformation of the inputs. This can be an arbitrary
+  nonlinear function. But note that if it spaces points far apart, for example,
+  the size of the internal quadrature rule will need to grow. 
 
 - `roughpoints::Union{Nothing, [iterable]{D,Float64}}`. 
   This argument is the way that you communicate locations at which `fun` is not
@@ -79,11 +83,11 @@ Keyword arguments are:
 function FastBandlimited(s1::Vector, s2::Vector, fn, bandlimit; 
                          quadn_add=default_extra_quad(s1), 
                          polar=false, allocating_mul=false,
-                         roughpoints=default_roughpoints(s1, polar))
+                         warp=identity, roughpoints=default_roughpoints(s1, polar))
   if roughpoints != default_roughpoints(s1, polar)
     @warn "This routine adds a default roughpoint at the origin. Since you are providing your own rough points list, please be mindful to now manually at that origin roughpoint if you need it." maxlog=1
   end
-  rule = shifted_bandlimited_quadrule(s1, s2, bandlimit, quadn_add, 
+  rule = shifted_bandlimited_quadrule(warp.(s1), warp.(s2), bandlimit, quadn_add, 
                                       roughpoints; polar=polar)
   op   = complex(rule.wt.*fn.(rule.no))
   ft1  = NUFFT3(rule.no, rule._s2.*(2*pi), -1)

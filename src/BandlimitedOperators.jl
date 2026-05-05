@@ -3,7 +3,7 @@ module BandlimitedOperators
  
   using LinearAlgebra, FastGaussQuadrature, FINUFFT, StaticArraysCore
 
-  export NUFFT3, FastBandlimited
+  export NUFFT3, FastBandlimited, GeometricAnisotropy
 
   include("nufft.jl")
   include("quadrature.jl")

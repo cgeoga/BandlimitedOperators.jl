@@ -30,8 +30,8 @@ end
 
   -- `with_2pi`: a logical `true` or `false` for whether you want a `2*pi` in the complex exponential. In neither case is the transform scaled by `inv(2*pi)`, however, so please handle your own normalizations.
 
-  -- `tol=1e-15`: The accuracy of the NUFFT. Unless you have a specific reason
-     to make it looser, we suggest keeping it at the default `1e-15`.
+  -- `tol=1e-14`: The accuracy of the NUFFT. Unless you have a specific reason
+     to make it looser, we suggest keeping it at the default `1e-14`.
 
   -- `ncol=1`: If you `*` or `mul!` with a matrix that has `ncol` columns, a pre-computed plan will be used, potentially saving some time. Otherwise, a non-guru mode `nufft[d]d3!` will be executed instead. The default is 1 so that if you pass this operator to a Krylov tool or other standard matvec-only methods you'll get to take advantage of the plan. But for acting on a variable number of columns, it is faster to use the non-guru mode.
 
@@ -70,7 +70,7 @@ end
 
 # NOTE: this does _not_ do the 2pi scaling for you.
 function NUFFT3(s1::Matrix{Float64}, s2::Matrix{Float64}, sgn::Int;
-                tol=1e-15, ncol=1, ncol_warning=true, 
+                tol=1e-14, ncol=1, ncol_warning=true, 
                 make_adjoint=true, with_2pi=false)
   if with_2pi
     return NUFFT3(s1.*(2*pi), s2, sgn; tol, ncol, ncol_warning,
